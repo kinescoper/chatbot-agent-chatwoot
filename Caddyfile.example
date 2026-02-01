@@ -1,0 +1,14 @@
+# Optional reverse proxy for RAG chat backend.
+# Rename to Caddyfile and run: caddy run --config Caddyfile
+# Or use with Docker: docker run -v $(pwd)/Caddyfile:/etc/caddy/Caddyfile -p 80:80 -p 443:443 caddy
+#
+# Replace example.com with your domain. Caddy will obtain and renew TLS automatically.
+
+example.com {
+    reverse_proxy localhost:8000
+}
+
+# HTTP-only (no TLS):
+# :80 {
+#     reverse_proxy localhost:8000
+# }

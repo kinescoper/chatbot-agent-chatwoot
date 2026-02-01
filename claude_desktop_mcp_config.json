@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "qdrant": {
+      "command": "/Users/insty/test_mcp/.venv/bin/python",
+      "args": ["-m", "mcp_server.server"],
+      "env": {
+        "PYTHONPATH": "/Users/insty/test_mcp",
+        "QDRANT_URL": "http://localhost:6333",
+        "COLLECTION_NAME": "papers",
+        "EMBEDDING_MODEL": "sentence-transformers/all-MiniLM-L6-v2"
+      }
+    }
+  }
+}

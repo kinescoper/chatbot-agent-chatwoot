@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <link rel="icon" href="/favicon.ico?v=2" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/favicon.ico?v=2" type="image/png">
+  <title>Kinescope Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html { height: 100%; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      background: #000;
+      color: #e4e4e7;
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+
+    .header {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      padding-top: max(0.75rem, env(safe-area-inset-top));
+      padding-left: max(1rem, env(safe-area-inset-left));
+      padding-right: max(1rem, env(safe-area-inset-right));
+      background: #000;
+      border-bottom: 1px solid #1f1f23;
+    }
+    .header-left, .header-right { display: flex; align-items: center; gap: 0.5rem; min-width: 2.5rem; }
+    .header-right { justify-content: flex-end; }
+    .header-center {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: -0.01em;
+    }
+    .header-icon {
+      width: 1.5rem;
+      height: 1.5rem;
+      background: linear-gradient(135deg, #6D559E 0%, #9F7AEA 100%);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .header-icon svg { width: 0.9rem; height: 0.9rem; fill: #fff; }
+    .header-btn {
+      background: none;
+      border: none;
+      color: #a1a1aa;
+      padding: 0.5rem;
+      cursor: pointer;
+      border-radius: 8px;
+    }
+    .header-btn:hover { color: #9F7AEA; background: #18181b; }
+    .header-btn svg { width: 1.25rem; height: 1.25rem; display: block; }
+
+    #main {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    #messages {
+      padding: 1rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .msg {
+      max-width: 85%;
+      padding: 0.875rem 1rem;
+      border-radius: 14px;
+      line-height: 1.55;
+      word-break: break-word;
+    }
+    .msg.user { white-space: pre-wrap; }
+    .msg.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, #5b4d7a 0%, #7c5cbf 100%);
+      color: #fff;
+    }
+    .msg.assistant {
+      align-self: flex-start;
+      background: #0c0c0e;
+      border: 1px solid #1f1f23;
+    }
+    .msg.assistant a { color: #9F7AEA; text-decoration: none; }
+    .msg.assistant a:hover { text-decoration: underline; }
+    .msg.assistant strong { font-weight: 600; color: #c4b5fd; }
+    .msg.assistant em { font-style: italic; }
+    .msg.assistant h3, .msg.assistant h4 { color: #a78bfa; font-weight: 600; margin: 0.75rem 0 0.35rem; }
+    .msg.assistant h3 { font-size: 1.05em; }
+    .msg.assistant h4 { font-size: 1em; }
+    .msg.assistant ul, .msg.assistant ol { margin: 0.5rem 0; padding-left: 1.25rem; }
+    .msg.assistant li { margin: 0.25rem 0; }
+    .msg.assistant p { margin: 0.5rem 0; }
+    .msg.assistant p:first-child { margin-top: 0; }
+    .msg.assistant p:last-child { margin-bottom: 0; }
+    .msg.assistant code { font-size: 0.9em; background: #1f1f23; color: #c4b5fd; padding: 0.15rem 0.35rem; border-radius: 4px; }
+
+    #welcome-suggestions {
+      padding: 0 1.25rem 1.5rem;
+    }
+    #welcome-suggestions.hidden { display: none; }
+    .welcome-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #fff;
+      margin: 0 0 0.25rem;
+      letter-spacing: -0.01em;
+    }
+    .welcome-subtitle {
+      font-size: 0.9375rem;
+      font-weight: 400;
+      color: #a1a1aa;
+      margin: 0 0 1.25rem;
+      line-height: 1.5;
+    }
+    .suggestion-btn {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 0.875rem 1rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.9375rem;
+      color: #a1a1aa;
+      background: #0c0c0e;
+      border: 1px solid #1f1f23;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+      font-family: inherit;
+    }
+    .suggestion-btn:hover {
+      color: #e4e4e7;
+      border-color: #3b2d5c;
+      background: linear-gradient(90deg, rgba(109, 85, 158, 0.2) 0%, rgba(159, 122, 234, 0.15) 100%);
+    }
+
+    #form {
+      flex-shrink: 0;
+      padding: 0.75rem 1rem;
+      padding-bottom: max(1rem, env(safe-area-inset-bottom));
+      padding-left: max(1rem, env(safe-area-inset-left));
+      padding-right: max(1rem, env(safe-area-inset-right));
+      background: #000;
+    }
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      min-height: 3.45rem;
+      background: #0c0c0e;
+      border: 2px solid #1f1f23;
+      border-radius: 14px;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+    .input-wrap:focus-within {
+      border: 2px solid #6D559E;
+      box-shadow: 0 0 0 3px rgba(159, 122, 234, 0.2);
+    }
+    #input {
+      flex: 1;
+      min-width: 0;
+      width: 100%;
+      padding: 0.85rem 3.25rem 0.85rem 1rem;
+      font-size: 16px;
+      font-family: inherit;
+      border: none;
+      border-radius: 14px;
+      background: transparent;
+      color: #e4e4e7;
+      resize: none;
+      min-height: 2.9rem;
+      max-height: 8rem;
+    }
+    #input::placeholder { color: #52525b; }
+    #input:focus { outline: none; }
+    #send {
+      position: absolute;
+      right: 0.6rem;
+      bottom: 0.6rem;
+      width: 2.25rem;
+      height: 2.25rem;
+      padding: 0;
+      font-size: 1.1rem;
+      background: #27272a;
+      color: #71717a;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.2s, color 0.2s;
+    }
+    .input-wrap.has-text #send {
+      background: linear-gradient(135deg, #6D559E 0%, #9F7AEA 100%);
+      color: #fff;
+      cursor: pointer;
+    }
+    .input-wrap.has-text #send:hover { opacity: 0.95; }
+    #send:hover:not(:disabled) { opacity: 0.9; }
+    #send:disabled { opacity: 0.5; cursor: not-allowed; }
+    .error { color: #f87171; }
+
+    .msg.typing { min-height: 2.5rem; }
+    .typing-dots {
+      display: flex;
+      gap: 0.35rem;
+      align-items: center;
+      padding: 0.25rem 0;
+    }
+    .typing-dots span {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #9F7AEA;
+      animation: typing-bounce 1.4s ease-in-out infinite both;
+    }
+    .typing-dots span:nth-child(1) { animation-delay: 0s; }
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typing-bounce {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.6; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <button type="button" class="header-btn" aria-label="Назад">&#10005;</button>
+    </div>
+    <div class="header-center">
+      <div class="header-icon"><svg viewBox="0 0 24 24"><path d="M12 2L15 8L22 9L17 14L18 21L12 18L6 21L7 14L2 9L9 8L12 2Z"/></svg></div>
+      Kinescope Agent
+    </div>
+    <div class="header-right">
+      <button type="button" class="header-btn" aria-label="Новый чат">&#9998;</button>
+      <button type="button" class="header-btn" aria-label="История">&#128337;</button>
+    </div>
+  </header>
+  <div id="main">
+    <div id="messages"></div>
+    <div id="welcome-suggestions">
+      <p class="welcome-title">Привет, добро пожаловать в базу знаний Kinescope!</p>
+      <p class="welcome-subtitle">Я помогу найти ответы, например, можно спросить:</p>
+      <button type="button" class="suggestion-btn" data-query="Как загрузить видео в Kinescope?">Как загрузить видео в Kinescope?</button>
+      <button type="button" class="suggestion-btn" data-query="Как встроить плеер на сайт?">Как встроить плеер на сайт?</button>
+      <button type="button" class="suggestion-btn" data-query="Как настроить доступ к видео?">Как настроить доступ к видео?</button>
+    </div>
+  </div>
+  <form id="form">
+    <div class="input-wrap" id="input-wrap">
+      <textarea id="input" placeholder="Спросите что угодно..." autocomplete="off" rows="1" autofocus></textarea>
+      <button type="submit" id="send" aria-label="Отправить">&#8593;</button>
+    </div>
+  </form>
+  <script>
+    const messagesEl = document.getElementById('messages');
+    const mainEl = document.getElementById('main');
+    const form = document.getElementById('form');
+    const input = document.getElementById('input');
+    const sendBtn = document.getElementById('send');
+    const welcomeSuggestions = document.getElementById('welcome-suggestions');
+
+    function hideWelcomeSuggestions() {
+      if (welcomeSuggestions && !welcomeSuggestions.classList.contains('hidden')) {
+        welcomeSuggestions.classList.add('hidden');
+      }
+    }
+
+    function renderMarkdown(text) {
+      let s = String(text)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+           .replace(/\*(.+?)\*/g, '<em>$1</em>')
+           .replace(/_(.+?)_/g, '<em>$1</em>')
+           .replace(/`([^`]+)`/g, '<code>$1</code>');
+      s = s.replace(/^### (.+)$/gm, '<h4>$1</h4>')
+           .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+           .replace(/^# (.+)$/gm, '<h3>$1</h3>');
+      s = s.replace(/^[-*]\s+/gm, '• ');
+      s = s.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
+      s = '<p>' + s + '</p>';
+      s = s.replace(/<p><\/p>/g, '').replace(/<p>(<h[34]>)/g, '$1').replace(/(<\/h[34]>)<\/p>/g, '$1');
+      s = s.replace(/https?:\/\/[^\s<>]+/g, '<a href="$&" target="_blank" rel="noopener">$&</a>');
+      return s;
+    }
+
+    function appendMessage(role, text, isError) {
+      const div = document.createElement('div');
+      div.className = 'msg ' + role;
+      const inner = document.createElement('div');
+      if (role === 'assistant' && !isError) {
+        inner.innerHTML = renderMarkdown(text);
+      } else {
+        inner.innerHTML = text.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')
+          .replace(/https?:\/\/[^\s<]+/g, '<a href="$&" target="_blank" rel="noopener">$&</a>');
+      }
+      if (isError) div.classList.add('error');
+      div.appendChild(inner);
+      messagesEl.appendChild(div);
+      mainEl.scrollTop = mainEl.scrollHeight;
+    }
+
+    function appendTypingIndicator() {
+      const div = document.createElement('div');
+      div.id = 'typing-indicator';
+      div.className = 'msg assistant typing';
+      div.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+      messagesEl.appendChild(div);
+      mainEl.scrollTop = mainEl.scrollHeight;
+    }
+
+    function removeTypingIndicator() {
+      const el = document.getElementById('typing-indicator');
+      if (el) el.remove();
+    }
+
+    function formatWithLinks(text) {
+      return renderMarkdown(text);
+    }
+
+    function appendStreamingMessage() {
+      const div = document.createElement('div');
+      div.className = 'msg assistant';
+      const inner = document.createElement('div');
+      div.appendChild(inner);
+      messagesEl.appendChild(div);
+      if (mainEl) mainEl.scrollTop = mainEl.scrollHeight;
+      return inner;
+    }
+
+    function typewriterIntoAssistant(text, delayMs) {
+      const inner = appendStreamingMessage();
+      let i = 0;
+      const step = () => {
+        if (i < text.length) {
+          i++;
+          inner.innerHTML = renderMarkdown(text.slice(0, i));
+          mainEl.scrollTop = mainEl.scrollHeight;
+          setTimeout(step, delayMs);
+        }
+      };
+      setTimeout(step, delayMs || 12);
+    }
+
+    function submitMessage(message) {
+      if (!message || !message.trim()) return null;
+      const text = message.trim();
+      hideWelcomeSuggestions();
+      appendMessage('user', text);
+      input.value = '';
+      if (input.style) input.style.height = 'auto';
+      updateSendButtonState();
+      sendBtn.disabled = true;
+      appendTypingIndicator();
+      return text;
+    }
+
+    document.querySelectorAll('.suggestion-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const query = btn.getAttribute('data-query') || btn.textContent;
+        const text = submitMessage(query);
+        if (text) fetchAndStream(text);
+      });
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = submitMessage(input.value);
+      if (text) await fetchAndStream(text);
+    });
+
+    async function fetchAndStream(message) {
+      try {
+        let res = await fetch('/chat/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message }),
+        });
+        if (res.status === 404) {
+          res = await fetch('/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message }),
+          });
+          removeTypingIndicator();
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            appendMessage('assistant', 'Ошибка: ' + (data.detail || res.statusText), true);
+            return;
+          }
+          appendMessage('assistant', data.reply || '');
+          return;
+        }
+        removeTypingIndicator();
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          appendMessage('assistant', 'Ошибка: ' + (data.detail || res.statusText), true);
+          return;
+        }
+        const inner = appendStreamingMessage();
+        let acc = '';
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop() || '';
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const obj = JSON.parse(line.slice(6));
+                if (obj.error) {
+                  inner.textContent = 'Ошибка: ' + obj.error;
+                  inner.parentElement.classList.add('error');
+                  break;
+                }
+                if (obj.delta) {
+                  acc += obj.delta;
+                  inner.innerHTML = renderMarkdown(acc);
+                  mainEl.scrollTop = mainEl.scrollHeight;
+                }
+              } catch (_) {}
+            }
+          }
+        }
+        if (acc && !inner.parentElement.classList.contains('error')) {
+          inner.innerHTML = formatWithLinks(acc);
+        }
+      } catch (err) {
+        removeTypingIndicator();
+        appendMessage('assistant', 'Ошибка сети: ' + err.message, true);
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        form.requestSubmit();
+      }
+    });
+    function updateSendButtonState() {
+      const wrap = document.getElementById('input-wrap');
+      if (wrap) wrap.classList.toggle('has-text', input.value.trim().length > 0);
+    }
+    input.addEventListener('input', () => {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 8 * 24) + 'px';
+      updateSendButtonState();
+    });
+    input.addEventListener('focus', updateSendButtonState);
+    input.addEventListener('blur', updateSendButtonState);
+    updateSendButtonState();
+    input.focus();
+  </script>
+</body>
+</html>
