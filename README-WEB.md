@@ -21,6 +21,10 @@
 | `LLM_API_BASE_URL` | — | Базовый URL Chat API (OpenAI, Ollama и т.д.) |
 | `LLM_API_KEY` | — | API-ключ (для OpenAI и др.; для Ollama можно пустой) |
 | `LLM_MODEL` | `gpt-4o-mini` | Имя модели |
+| `CHATWOOT_BASE_URL` | — | URL инстанса Chatwoot (для webhook) |
+| `CHATWOOT_ACCOUNT_ID` | — | ID аккаунта |
+| `CHATWOOT_API_ACCESS_TOKEN` | — | Токен из Profile → Access Token |
+| `CHATWOOT_SUPPORT_MODE_ATTR` | support_mode | Ключ атрибута «бот»/«человек» в pre-chat |
 
 Параметры RAG (эмбеддинг, ре-ранжирование) — те же, что у [mcp_server](mcp_server/README.md): `LIMIT_FIRST`, `LIMIT_FINAL`, `RERANK_ALPHA`, `USE_CROSS_ENCODER` и т.д.
 
@@ -81,3 +85,4 @@
 - `GET /` — чат-интерфейс (HTML).
 - `POST /chat` — тело `{"message": "текст вопроса"}`, ответ `{"reply": "ответ ассистента"}`.
 - `GET /health` — проверка работы сервиса.
+- **Chatwoot**: `POST /chatwoot/webhook` — вебхук для режимов «бот» и «копилот»; развилка через Pre Chat Form (см. [docs/CHATWOOT-PRE-CHAT-FORM.md](docs/CHATWOOT-PRE-CHAT-FORM.md)); `POST /chatwoot/copilot` — тело `{"message": "..."}`, ответ `{"suggestion": "..."}` (только подсказка, без поста в Chatwoot). Обзор опций интеграции: [docs/chatwoot-qdrant-integration-review.md](docs/chatwoot-qdrant-integration-review.md).

@@ -138,6 +138,20 @@ def _clean_reply(reply: str) -> str:
     return (cleaned_before + "\n\n" + sources_block.strip()).strip()
 
 
+def get_rag_reply(message: str) -> str:
+    """RAG + LLM reply for a single message. Used by Chatwoot webhook (bot + copilot)."""
+    message = (message or "").strip()
+    if not message:
+        return ""
+    rag_text = rag_search(message)
+    system_content = SYSTEM_PROMPT_TEMPLATE.replace("{{RAG_CONTEXT}}", rag_text)
+    try:
+        reply = _call_llm(system_content, message)
+    except Exception:
+        return ""
+    return _clean_reply(reply)
+
+
 @app.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest) -> ChatResponse:
     message = (request.message or "").strip()
@@ -174,6 +188,14 @@ def chat_stream(request: ChatRequest) -> StreamingResponse:
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+try:
+    from backend.chatwoot_webhook import router as chatwoot_router, set_reply_provider
+    set_reply_provider(get_rag_reply)
+    app.include_router(chatwoot_router)
+except ImportError:
+    pass
 
 
 @app.get("/health")
