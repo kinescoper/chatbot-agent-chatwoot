@@ -44,6 +44,8 @@ LLM_MODEL=gpt-4o-mini
 
 ## 3. Запуск сервисов
 
+**На VPS:** в репозитории есть `docker-compose.override.yml`, который переопределяет `QDRANT_URL` на `host.docker.internal:6333` (для локального Mac). На Linux этот хост не резолвится — backend не достучится до Qdrant, бот не будет отвечать. На сервере отключите override: `mv docker-compose.override.yml docker-compose.override.yml.bak`, затем `docker compose up -d --force-recreate backend`.
+
 Из корня проекта:
 
 ```bash

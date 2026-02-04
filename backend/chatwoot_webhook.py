@@ -245,8 +245,9 @@ def _process_message(payload: WebhookPayload) -> None:
     stream_provider = get_stream_reply_provider() if mode == "bot" else None
     use_stream = mode == "bot" and STREAM_REPLY_ENABLED and stream_provider is not None
 
-    if mode == "bot" and not use_stream:
-        post_message(cid, AUTO_REPLY_PLACEHOLDER, private=False, **post_kw)
+    # Плейсхолдер отключён: в режиме бота есть индикатор «бот печатает»; при двойной доставке webhook дублировал бы сообщение.
+    # if mode == "bot" and not use_stream:
+    #     post_message(cid, AUTO_REPLY_PLACEHOLDER, private=False, **post_kw)
 
     t0 = _time.perf_counter()
     if use_stream:
@@ -330,11 +331,13 @@ async def webhook(request: Request, background_tasks: BackgroundTasks) -> dict[s
             cid = int(conv.get("id"))
         except (TypeError, ValueError):
             pass
+    inbox_id_raw = conv.get("inbox_id") or (conv.get("inbox") or {}).get("id")
     logger.info(
-        "chatwoot webhook: event=%s message_type=%s conversation_id=%s",
+        "chatwoot webhook: event=%s message_type=%s conversation_id=%s inbox_id=%s",
         event,
         message_type,
         cid,
+        inbox_id_raw,
     )
     if event != "message_created":
         logger.debug("chatwoot webhook: skip event %s", event)
@@ -345,7 +348,7 @@ async def webhook(request: Request, background_tasks: BackgroundTasks) -> dict[s
     content = (body.get("content") or "").strip()
     conv_attrs = conv.get("custom_attributes") or conv.get("additional_attributes") or {}
     print(
-        f"[chatwoot] content={repr(content)[:120]} cid={cid} support_mode={conv_attrs.get(SUPPORT_MODE_ATTR)}",
+        f"[chatwoot] content={repr(content)[:120]} cid={cid} inbox_id={inbox_id_raw} support_mode={conv_attrs.get(SUPPORT_MODE_ATTR)}",
         file=sys.stderr,
         flush=True,
     )
