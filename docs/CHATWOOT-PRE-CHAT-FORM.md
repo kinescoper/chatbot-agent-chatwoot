@@ -98,9 +98,9 @@
 
 ---
 
-## 3.1. Второй инбокс: testchat_agentbot.kn.pe (всегда бот)
+## 3.1. Второй инбокс: testchat-agentbot.kn.pe (всегда бот)
 
-На поддомене **testchat_agentbot.kn.pe** развёрнут виджет с инбоксом **Test Chat AgentBot** (без Pre Chat Form): пользователь сразу пишет в чат, все сообщения обрабатываются как режим «бот». В Chatwoot создан Agent Bot **Qdrant** с webhook `https://agent.kn.pe/chatwoot/webhook`, бот привязан к этому инбоксу. Бэкенд определяет инбокс по `inbox_id` в webhook payload. Задайте в `.env`: `CHATWOOT_AGENTBOT_INBOX_ID=2` (id инбокса Test Chat AgentBot, см. URL настроек инбокса в Chatwoot). Опционально: `CHATWOOT_AGENTBOT_ACCESS_TOKEN` — токен бота Qdrant, чтобы ответы в чате отображались от имени бота. Деплой лендинга: `./scripts/setup-testchat-agentbot-kn-pe.sh`. Ошибки отправки в Chatwoot пишутся как `Chatwoot client: post_message failed` со статусом и телом ответа. На VPS: `docker compose -f /opt/rag-chat/docker-compose.yml logs -f backend`.
+На поддомене **testchat-agentbot.kn.pe** развёрнут виджет с инбоксом **Test Chat AgentBot** (без Pre Chat Form): пользователь сразу пишет в чат, все сообщения обрабатываются как режим «бот». В Chatwoot создан Agent Bot **Qdrant** с webhook `https://agent.kn.pe/chatwoot/webhook`, бот привязан к этому инбоксу. Бэкенд определяет инбокс по `inbox_id` в webhook payload. Задайте в `.env`: `CHATWOOT_AGENTBOT_INBOX_ID=2` (id инбокса Test Chat AgentBot, см. URL настроек инбокса в Chatwoot). Опционально: `CHATWOOT_AGENTBOT_ACCESS_TOKEN` — токен бота Qdrant, чтобы ответы в чате отображались от имени бота. Деплой лендинга: `./scripts/setup-testchat-agentbot-kn-pe.sh`. Ошибки отправки в Chatwoot пишутся как `Chatwoot client: post_message failed` со статусом и телом ответа. На VPS: `docker compose -f /opt/rag-chat/docker-compose.yml logs -f backend`.
 
 ---
 

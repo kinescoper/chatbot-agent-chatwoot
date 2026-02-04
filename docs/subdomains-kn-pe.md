@@ -49,7 +49,7 @@
 | **agent.kn.pe** | RAG API и webhook для Chatwoot (`/chat`, `/chatwoot/webhook`, `/chatwoot/copilot`) | `backend:8000` |
 | **chatwoot.kn.pe** | Интерфейс Chatwoot (агенты, виджет) | Chatwoot Rails (порт 3000) |
 | **testchat.kn.pe** | Тестовая страница с виджетом Chatwoot (Pre Chat Form: AI агент / человек) | nginx: `root /var/www/testchat.kn.pe` |
-| **testchat_agentbot.kn.pe** | Тестовая страница с виджетом «всегда бот» (инбокс Test Chat AgentBot, без формы) | nginx: `root /var/www/testchat_agentbot.kn.pe` |
+| **testchat-agentbot.kn.pe** | Тестовая страница с виджетом «всегда бот» (инбокс Test Chat AgentBot, без формы) | nginx: `root /var/www/testchat-agentbot.kn.pe` |
 
 На **kn.pe** отображаются две ссылки: Chatwoot и Knowledge base web chat (agent.kn.pe).
 
@@ -145,15 +145,15 @@ ENABLE_RACK_ATTACK_WIDGET_API=false
 ```
 Документация: [Chatwoot Rate Limiting](https://developers.chatwoot.com/self-hosted/monitoring/rate-limiting). Альтернативно можно увеличить лимит: `RACK_ATTACK_LIMIT=300`.
 
-### 7. testchat_agentbot.kn.pe (виджет «всегда бот»)
+### 7. testchat-agentbot.kn.pe (виджет «всегда бот»)
 
-Дубликат тестового чата без Pre Chat Form: инбокс **Test Chat AgentBot**, все диалоги обрабатываются как ответ бота. A-запись **testchat_agentbot.kn.pe** → IP VPS. В бэкенде задайте `CHATWOOT_AGENTBOT_INBOX_ID=2` (id инбокса в Chatwoot). Деплой:
+Дубликат тестового чата без Pre Chat Form: инбокс **Test Chat AgentBot**, все диалоги обрабатываются как ответ бота. A-запись **testchat-agentbot.kn.pe** → IP VPS. В бэкенде задайте `CHATWOOT_AGENTBOT_INBOX_ID=2` (id инбокса в Chatwoot). Деплой:
 
 ```bash
 ./scripts/setup-testchat-agentbot-kn-pe.sh
 ```
 
-После выполнения откройте **https://testchat_agentbot.kn.pe**. Подробнее: [CHATWOOT-PRE-CHAT-FORM.md](CHATWOOT-PRE-CHAT-FORM.md) (раздел 3.1).
+После выполнения откройте **https://testchat-agentbot.kn.pe**. Подробнее: [CHATWOOT-PRE-CHAT-FORM.md](CHATWOOT-PRE-CHAT-FORM.md) (раздел 3.1).
 
 ---
 

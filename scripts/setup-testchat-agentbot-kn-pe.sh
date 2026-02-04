@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Set up testchat_agentbot.kn.pe: static frontend with Chatwoot widget (always-bot inbox) over TLS.
-# Requires: A-record testchat_agentbot.kn.pe → VPS IP; SSH Host gdrant-agent; project synced to VPS.
+# Set up testchat-agentbot.kn.pe: static frontend with Chatwoot widget (always-bot inbox) over TLS.
+# Requires: A-record testchat-agentbot.kn.pe → VPS IP; SSH Host gdrant-agent; project synced to VPS.
 #
 # Run from repo root (or set REMOTE_DIR). Optionally: CERTBOT_EMAIL=you@example.com
 
@@ -21,32 +21,32 @@ echo "==> 2. On VPS: create site dir, nginx config, SSL, reload"
 run_remote "bash -s" "$REMOTE_DIR" "$CERTBOT_EMAIL" << 'REMOTE'
 REMOTE_DIR="$1"
 CERTBOT_EMAIL="${2:-admin@kn.pe}"
-SITE_ROOT="/var/www/testchat_agentbot.kn.pe"
+SITE_ROOT="/var/www/testchat-agentbot.kn.pe"
 
 sudo mkdir -p "$SITE_ROOT"
-sudo cp "$REMOTE_DIR/nginx/testchat_agentbot.kn.pe-landing/"* "$SITE_ROOT/"
+sudo cp "$REMOTE_DIR/nginx/testchat-agentbot.kn.pe-landing/"* "$SITE_ROOT/"
 sudo chown -R www-data:www-data "$SITE_ROOT" 2>/dev/null || true
 
 # Bootstrap (HTTP only) for certbot
-sudo cp "$REMOTE_DIR/nginx/testchat_agentbot.kn.pe-bootstrap.conf" /etc/nginx/sites-available/testchat_agentbot.kn.pe.conf
-sudo ln -sf /etc/nginx/sites-available/testchat_agentbot.kn.pe.conf /etc/nginx/sites-enabled/
+sudo cp "$REMOTE_DIR/nginx/testchat-agentbot.kn.pe-bootstrap.conf" /etc/nginx/sites-available/testchat-agentbot.kn.pe.conf
+sudo ln -sf /etc/nginx/sites-available/testchat-agentbot.kn.pe.conf /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
 
 # Get certificate if missing
-if [[ ! -d /etc/letsencrypt/live/testchat_agentbot.kn.pe ]]; then
-  echo "Getting SSL for testchat_agentbot.kn.pe ..."
-  sudo certbot certonly --nginx -d testchat_agentbot.kn.pe --non-interactive --agree-tos -m "$CERTBOT_EMAIL" || true
+if [[ ! -d /etc/letsencrypt/live/testchat-agentbot.kn.pe ]]; then
+  echo "Getting SSL for testchat-agentbot.kn.pe ..."
+  sudo certbot certonly --nginx -d testchat-agentbot.kn.pe --non-interactive --agree-tos -m "$CERTBOT_EMAIL" || true
 fi
 
 # Full config with HTTPS
-if [[ -d /etc/letsencrypt/live/testchat_agentbot.kn.pe ]]; then
-  sudo cp "$REMOTE_DIR/nginx/testchat_agentbot.kn.pe.conf" /etc/nginx/sites-available/testchat_agentbot.kn.pe.conf
+if [[ -d /etc/letsencrypt/live/testchat-agentbot.kn.pe ]]; then
+  sudo cp "$REMOTE_DIR/nginx/testchat-agentbot.kn.pe.conf" /etc/nginx/sites-available/testchat-agentbot.kn.pe.conf
   sudo nginx -t && sudo systemctl reload nginx
-  echo "testchat_agentbot.kn.pe: HTTPS enabled."
+  echo "testchat-agentbot.kn.pe: HTTPS enabled."
 else
   echo "SSL not obtained. Fix DNS/certbot and run again to enable HTTPS."
 fi
 REMOTE
 
-echo "==> Done. Open https://testchat_agentbot.kn.pe (Chatwoot widget, always-bot inbox)."
+echo "==> Done. Open https://testchat-agentbot.kn.pe (Chatwoot widget, always-bot inbox)."
 echo "    If HTTPS is not ready yet, wait for DNS and run the script again."
