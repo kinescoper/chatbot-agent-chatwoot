@@ -17,6 +17,9 @@ CHATWOOT_ACCOUNT_ID = os.environ.get("CHATWOOT_ACCOUNT_ID", "")
 CHATWOOT_API_ACCESS_TOKEN = (os.environ.get("CHATWOOT_API_ACCESS_TOKEN") or "").strip()
 
 
+CHATWOOT_AGENTBOT_ACCESS_TOKEN = (os.environ.get("CHATWOOT_AGENTBOT_ACCESS_TOKEN") or "").strip()
+
+
 def is_configured() -> bool:
     return bool(CHATWOOT_BASE_URL and CHATWOOT_ACCOUNT_ID and CHATWOOT_API_ACCESS_TOKEN)
 
@@ -26,13 +29,16 @@ def post_message(
     content: str,
     *,
     private: bool = False,
+    access_token: str | None = None,
 ) -> dict[str, Any] | None:
     """
     Post a message to a Chatwoot conversation (Application API).
     private=True: only agents see it (copilot suggestion).
     private=False: customer sees it (bot reply).
+    access_token: if set, use instead of CHATWOOT_API_ACCESS_TOKEN (e.g. Agent Bot token).
     """
-    if not is_configured():
+    token = (access_token or "").strip() or CHATWOOT_API_ACCESS_TOKEN
+    if not CHATWOOT_BASE_URL or not CHATWOOT_ACCOUNT_ID or not token:
         logger.warning("Chatwoot client: not configured, cannot post message")
         return None
     url = f"{CHATWOOT_BASE_URL}/api/v1/accounts/{CHATWOOT_ACCOUNT_ID}/conversations/{conversation_id}/messages"
@@ -47,7 +53,7 @@ def post_message(
                 url,
                 json=payload,
                 headers={
-                    "api_access_token": CHATWOOT_API_ACCESS_TOKEN,
+                    "api_access_token": token,
                     "Content-Type": "application/json",
                 },
             )

@@ -32,11 +32,20 @@ _SKIP_PHRASES = frozenset(
 from fastapi import APIRouter, BackgroundTasks, Request
 from pydantic import BaseModel, Field
 
-from backend.chatwoot_client import is_configured, post_message
+from backend.chatwoot_client import is_configured, post_message, CHATWOOT_AGENTBOT_ACCESS_TOKEN
 
 logger = logging.getLogger(__name__)
 
 SUPPORT_MODE_ATTR = os.environ.get("CHATWOOT_SUPPORT_MODE_ATTR", "support_mode")
+# Inbox IDs that are "always bot" (e.g. Test Chat AgentBot = 2). Comma-separated or single ID.
+_AGENTBOT_INBOX_IDS: set[int] = set()
+_raw = (os.environ.get("CHATWOOT_AGENTBOT_INBOX_IDS") or os.environ.get("CHATWOOT_AGENTBOT_INBOX_ID") or "").strip()
+if _raw:
+    for part in _raw.replace(",", " ").split():
+        try:
+            _AGENTBOT_INBOX_IDS.add(int(part))
+        except ValueError:
+            pass
 COPILOT_PREFIX = "[RAG suggestion – use or edit]\n\n"
 # Мгновенное сообщение в чат, пока AI готовит ответ (режим bot)
 AUTO_REPLY_PLACEHOLDER = "Спасибо за обращение. Наш AI ассистент уже работает над ответом, подождите пожалуйста несколько секунд."
@@ -133,6 +142,31 @@ def _conversation_id(payload: WebhookPayload) -> int | None:
     return None
 
 
+def _inbox_id(payload: WebhookPayload) -> int | None:
+    """Inbox id from conversation (conversation.inbox_id or conversation.inbox.id)."""
+    conv = payload.conversation or {}
+    iid = conv.get("inbox_id")
+    if iid is not None:
+        try:
+            return int(iid)
+        except (TypeError, ValueError):
+            pass
+    inbox = conv.get("inbox")
+    if isinstance(inbox, dict) and inbox.get("id") is not None:
+        try:
+            return int(inbox["id"])
+        except (TypeError, ValueError):
+            pass
+    return None
+
+
+def _is_agentbot_inbox(inbox_id: int | None) -> bool:
+    """True if this inbox is configured as always-bot (e.g. Test Chat AgentBot)."""
+    if inbox_id is None:
+        return False
+    return inbox_id in _AGENTBOT_INBOX_IDS
+
+
 def _is_email_only(content: str, content_type: str) -> bool:
     """Пропускаем сообщения с только email (Pre Chat Form), чтобы не постить «не нашёл»."""
     if (content_type or "").strip().lower() in ("input_email", "input_csat"):
@@ -161,7 +195,17 @@ def _strip_html(text: str) -> str:
 def _process_message(payload: WebhookPayload) -> None:
     """Call reply provider and post reply (public for bot, private for copilot)."""
     cid = _conversation_id(payload)
-    mode = _support_mode(payload)
+    inbox_id = _inbox_id(payload)
+    # Inbox in CHATWOOT_AGENTBOT_INBOX_ID(S) -> always bot, no Pre Chat Form check
+    if _is_agentbot_inbox(inbox_id):
+        mode = "bot"
+        use_agentbot_token = bool(CHATWOOT_AGENTBOT_ACCESS_TOKEN)
+    else:
+        mode = _support_mode(payload)
+        use_agentbot_token = False
+    post_kw: dict = {}
+    if use_agentbot_token:
+        post_kw["access_token"] = CHATWOOT_AGENTBOT_ACCESS_TOKEN
     raw_content = (payload.content or "").strip()
     content = _strip_html(raw_content)
     if raw_content != content:
@@ -171,8 +215,9 @@ def _process_message(payload: WebhookPayload) -> None:
     raw_mode_conv = conv_attrs.get(SUPPORT_MODE_ATTR) or conv_attrs.get("preferred_channel")
     content_preview = (content[:80] + "…") if len(content) > 80 else content
     logger.info(
-        "chatwoot webhook process: conversation_id=%s support_mode=%s content_type=%s content_preview=%r",
+        "chatwoot webhook process: conversation_id=%s inbox_id=%s support_mode=%s content_type=%s content_preview=%r",
         cid,
+        inbox_id,
         mode,
         content_type,
         content_preview,
@@ -201,7 +246,7 @@ def _process_message(payload: WebhookPayload) -> None:
     use_stream = mode == "bot" and STREAM_REPLY_ENABLED and stream_provider is not None
 
     if mode == "bot" and not use_stream:
-        post_message(cid, AUTO_REPLY_PLACEHOLDER, private=False)
+        post_message(cid, AUTO_REPLY_PLACEHOLDER, private=False, **post_kw)
 
     t0 = _time.perf_counter()
     if use_stream:
@@ -211,7 +256,7 @@ def _process_message(payload: WebhookPayload) -> None:
                 if not (block or "").strip():
                     continue
                 block_count += 1
-                ok = post_message(cid, block.strip(), private=False)
+                ok = post_message(cid, block.strip(), private=False, **post_kw)
                 if not ok:
                     logger.error("Failed to post stream block %s to conversation_id=%s", block_count, cid)
                     break
@@ -236,11 +281,11 @@ def _process_message(payload: WebhookPayload) -> None:
     total_sec = _time.perf_counter() - t0
     print(f"[chatwoot] reply_len={len(reply)} total_sec={total_sec:.2f} mode={mode}", file=sys.stderr, flush=True)
     if mode == "bot":
-        ok = post_message(cid, reply, private=False)
+        ok = post_message(cid, reply, private=False, **post_kw)
         if not ok:
             logger.error("Failed to post bot reply to conversation_id=%s", cid)
     else:
-        ok = post_message(cid, COPILOT_PREFIX + reply, private=True)
+        ok = post_message(cid, COPILOT_PREFIX + reply, private=True, **post_kw)
         if not ok:
             logger.error("Failed to post copilot suggestion to conversation_id=%s", cid)
 

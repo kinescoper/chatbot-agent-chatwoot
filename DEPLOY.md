@@ -38,7 +38,7 @@ LLM_MODEL=gpt-4o-mini
 
 Не коммитьте `.env` в репозиторий — в нём хранятся секреты.
 
-При интеграции с **Chatwoot** (webhook на `agent.kn.pe`) добавьте в `.env` переменные из [docs/CHATWOOT-PRE-CHAT-FORM.md](docs/CHATWOOT-PRE-CHAT-FORM.md) (`CHATWOOT_BASE_URL`, `CHATWOOT_ACCOUNT_ID`, `CHATWOOT_API_ACCESS_TOKEN`). Чтобы ответ бота шёл блоками (стриминг), задайте `CHATWOOT_STREAM_REPLY=true`.
+При интеграции с **Chatwoot** (webhook на `agent.kn.pe`) добавьте в `.env` переменные из [docs/CHATWOOT-PRE-CHAT-FORM.md](docs/CHATWOOT-PRE-CHAT-FORM.md) (`CHATWOOT_BASE_URL`, `CHATWOOT_ACCOUNT_ID`, `CHATWOOT_API_ACCESS_TOKEN`). Чтобы ответ бота шёл блоками (стриминг), задайте `CHATWOOT_STREAM_REPLY=true`. Для виджета testchat_agentbot.kn.pe (инбокс «всегда бот») добавьте `CHATWOOT_AGENTBOT_INBOX_ID=2` и при необходимости `CHATWOOT_AGENTBOT_ACCESS_TOKEN` (токен бота Qdrant).
 
 Чтобы в веб-чате работала модель **Algolia** (селектор в интерфейсе), добавьте в `.env` на сервере: `ALGOLIA_APPLICATION_ID`, `ALGOLIA_API_KEY` (search-only key). Опционально: `ALGOLIA_AGENT_ID`. По умолчанию используется US-эндпоинт `https://agent-studio.us.algolia.com` (для серверных запросов без Cloudflare challenge). При необходимости EU: `ALGOLIA_AGENT_STUDIO_BASE_URL=https://agent-studio.eu.algolia.com`. После изменения `.env`: `docker compose up -d --force-recreate backend`.
 
