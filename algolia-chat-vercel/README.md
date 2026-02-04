@@ -1,8 +1,8 @@
 # Kinescope — чат по базе знаний (Algolia Agent на Vercel)
 
-Чат с ассистентом по документации Kinescope. Запросы идут **из браузера** напрямую в Algolia Agent Studio (без бэкенда), поэтому нет проблем с Cloudflare и «agent not found».
+Чат с ассистентом по документации Kinescope. Запросы идут через API route `/api/chat` (прокси на сервере Vercel) в Algolia Agent Studio — обход CORS, ключ не в браузере.
 
-Стек: **Next.js**, запросы к Algolia Completions API через `fetch` и парсинг стрима (события `text-delta`). Совместимо с форматом AI SDK 5.
+Стек: **Next.js**, стрим ответа (SSE, события `text-delta`). Совместимо с форматом AI SDK 5.
 
 ## Локальный запуск
 
@@ -27,6 +27,12 @@ npm run dev
 5. **Deploy**.
 
 После деплоя чат будет доступен по ссылке вида `https://your-project.vercel.app`.
+
+## Производительность
+
+- **Прокси** стримит ответ чанками без буферизации по строкам — быстрее первый байт.
+- **US-эндпоинт**: задайте `ALGOLIA_AGENT_STUDIO_BASE_URL=https://agent-studio.us.algolia.com` в Vercel, если деплой в США (меньше RTT до Algolia).
+- **Первый запрос** после простоя может быть медленнее (cold start serverless).
 
 ## Безопасность
 

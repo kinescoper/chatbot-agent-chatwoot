@@ -3,8 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 const APP_ID = process.env.ALGOLIA_APPLICATION_ID || process.env.NEXT_PUBLIC_ALGOLIA_APPLICATION_ID || "SRC8UTYBUO";
 const API_KEY = process.env.ALGOLIA_API_KEY || process.env.NEXT_PUBLIC_ALGOLIA_API_KEY;
 const AGENT_ID = process.env.ALGOLIA_AGENT_ID || process.env.NEXT_PUBLIC_ALGOLIA_AGENT_ID || "1feae05a-7e87-4508-88c8-2d7da88e30de";
-
-const ALGOLIA_URL = `https://${APP_ID.toLowerCase()}.algolia.net/agent-studio/1/agents/${AGENT_ID}/completions?stream=true&compatibilityMode=ai-sdk-5`;
+// Региональный эндпоинт (например https://agent-studio.us.algolia.com) уменьшает RTT, если Vercel в США
+const BASE_URL = process.env.ALGOLIA_AGENT_STUDIO_BASE_URL || `https://${APP_ID.toLowerCase()}.algolia.net/agent-studio`;
+const ALGOLIA_URL = `${BASE_URL}/1/agents/${AGENT_ID}/completions?stream=true&compatibilityMode=ai-sdk-5`;
 
 export async function POST(req: NextRequest) {
   if (!API_KEY) {
@@ -62,21 +63,12 @@ export async function POST(req: NextRequest) {
           return;
         }
 
-        const decoder = new TextDecoder();
-        let buf = "";
+        // Pass-through: пересылаем чанки сразу, без буферизации по строкам — меньше задержка до первого байта
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          buf += decoder.decode(value, { stream: true });
-          const lines = buf.split("\n");
-          buf = lines.pop() ?? "";
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              controller.enqueue(encoder.encode(line + "\n"));
-            }
-          }
+          if (value?.length) controller.enqueue(value);
         }
-        if (buf.trim()) controller.enqueue(encoder.encode(buf + "\n"));
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`));

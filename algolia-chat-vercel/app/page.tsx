@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 
 // Запросы идут через наш API route (/api/chat), чтобы обойти CORS Algolia и не светить ключ в браузере.
 function getChatApiUrl() {
@@ -16,6 +16,8 @@ function useAlgoliaChat() {
   const [streamingContent, setStreamingContent] = useState("");
   const [status, setStatus] = useState<"ready" | "streaming" | "error">("ready");
   const [error, setError] = useState<string | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const pendingAcc = useRef("");
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim()) return;
@@ -63,7 +65,14 @@ function useAlgoliaChat() {
                 const obj = JSON.parse(line.slice(6).trim());
                 if (obj.type === "text-delta" && typeof obj.delta === "string") {
                   acc += obj.delta;
-                  setStreamingContent(acc);
+                  pendingAcc.current = acc;
+                  // Обновляем UI не чаще раза за кадр — меньше нагрузка на React при частых дельтах
+                  if (rafRef.current === null) {
+                    rafRef.current = requestAnimationFrame(() => {
+                      rafRef.current = null;
+                      setStreamingContent(pendingAcc.current);
+                    });
+                  }
                 }
                 if (obj.error) {
                   setError(String(obj.error));
@@ -78,6 +87,10 @@ function useAlgoliaChat() {
         }
       }
 
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
       setMessages((prev) => [...prev, { role: "assistant", content: acc }]);
       setStreamingContent("");
       setStatus("ready");
