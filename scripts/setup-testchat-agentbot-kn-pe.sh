@@ -17,10 +17,15 @@ rsync -az --delete \
   --exclude 'node_modules' --exclude '.venv*' \
   . "$VPS_HOST:$REMOTE_DIR/"
 
-echo "==> 2. On VPS: create site dir, nginx config, SSL, reload"
+echo "==> 2. On VPS: disable Qdrant override, create site dir, nginx config, SSL, reload"
 run_remote "bash -s" "$REMOTE_DIR" "$CERTBOT_EMAIL" << 'REMOTE'
 REMOTE_DIR="$1"
 CERTBOT_EMAIL="${2:-admin@kn.pe}"
+# На Linux host.docker.internal не резолвится — отключаем override после sync и перезапускаем backend.
+if [[ -f "$REMOTE_DIR/docker-compose.override.yml" ]]; then
+  mv "$REMOTE_DIR/docker-compose.override.yml" "$REMOTE_DIR/docker-compose.override.yml.bak" 2>/dev/null || true
+  cd "$REMOTE_DIR" && docker compose up -d --force-recreate backend 2>/dev/null || true
+fi
 SITE_ROOT="/var/www/testchat-agentbot.kn.pe"
 
 sudo mkdir -p "$SITE_ROOT"
