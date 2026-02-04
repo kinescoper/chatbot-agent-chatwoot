@@ -2,17 +2,11 @@
 
 import { useState, useCallback } from "react";
 
-function getAlgoliaConfig() {
-  const appId = (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_ALGOLIA_APPLICATION_ID) || "SRC8UTYBUO";
-  const apiKey = (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_ALGOLIA_API_KEY) || "a5eed7751bad8e4535ace1f3b08f52c5";
-  const agentId = (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_ALGOLIA_AGENT_ID) || "1feae05a-7e87-4508-88c8-2d7da88e30de";
-  const base = String(appId).toLowerCase();
-  return {
-    appId: String(appId),
-    apiKey: String(apiKey),
-    agentId: String(agentId),
-    apiUrl: `https://${base}.algolia.net/agent-studio/1/agents/${agentId}/completions?stream=true&compatibilityMode=ai-sdk-5`,
-  };
+// Запросы идут через наш API route (/api/chat), чтобы обойти CORS Algolia и не светить ключ в браузере.
+function getChatApiUrl() {
+  if (typeof window !== "undefined") return "/api/chat";
+  const base = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000";
+  return `${base}/api/chat`;
 }
 
 type Message = { role: "user" | "assistant"; content: string };
@@ -25,20 +19,15 @@ function useAlgoliaChat() {
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim()) return;
-    const cfg = getAlgoliaConfig();
     setError(null);
     setMessages((prev) => [...prev, { role: "user", content: text.trim() }]);
     setStreamingContent("");
     setStatus("streaming");
 
     try {
-      const res = await fetch(cfg.apiUrl, {
+      const res = await fetch(getChatApiUrl(), {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-algolia-application-id": cfg.appId,
-          "x-algolia-api-key": cfg.apiKey,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: [{ role: "user", parts: [{ text: text.trim() }] }],
         }),
@@ -49,7 +38,7 @@ function useAlgoliaChat() {
         let errMsg = body;
         try {
           const j = JSON.parse(body);
-          errMsg = j.message ?? j.detail ?? body;
+          errMsg = j.error ?? j.message ?? j.detail ?? body;
         } catch {
           if (body.startsWith("<!")) errMsg = "Algolia вернул HTML (возможно Cloudflare).";
         }

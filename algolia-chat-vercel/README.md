@@ -19,14 +19,15 @@ npm run dev
 1. Залейте проект в GitHub (или подключите репозиторий к Vercel).
 2. В [Vercel](https://vercel.com): **Add New Project** → импортируйте репозиторий.
 3. **Root Directory** укажите `algolia-chat-vercel` (если проект в подпапке монорепо).
-4. При желании задайте переменные окружения (иначе используются значения по умолчанию из кода):
-   - `NEXT_PUBLIC_ALGOLIA_APPLICATION_ID` — Application ID (например `SRC8UTYBUO`)
-   - `NEXT_PUBLIC_ALGOLIA_API_KEY` — Search-Only API key
-   - `NEXT_PUBLIC_ALGOLIA_AGENT_ID` — ID агента из Agent Studio
+4. Задайте переменные окружения (обязательно для ответов агента):
+   - `ALGOLIA_APPLICATION_ID` — Application ID (например `SRC8UTYBUO`)
+   - `ALGOLIA_API_KEY` — API key с доступом к Agent Studio
+   - `ALGOLIA_AGENT_ID` — ID агента из Agent Studio (опубликованный агент)
+   Запросы к Algolia идут через API route `/api/chat` на сервере (обход CORS, ключ не в браузере).
 5. **Deploy**.
 
 После деплоя чат будет доступен по ссылке вида `https://your-project.vercel.app`.
 
 ## Безопасность
 
-В браузере доступны только переменные с префиксом `NEXT_PUBLIC_*`. Используется **Search-Only API key** Algolia — он предназначен для клиента и ограничивается настройками ACL в дашборде Algolia.
+Ключ Algolia задаётся только на сервере (`ALGOLIA_*` в Vercel). Браузер обращается к `/api/chat`, прокси стримит ответ от Algolia — ключ в клиент не попадает.
