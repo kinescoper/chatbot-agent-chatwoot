@@ -11,8 +11,15 @@ import logging
 import os
 import re
 import sys
+import threading
 import time as _time
 from typing import Any, Callable, Iterator
+
+# Идемпотентность: один и тот же message_created Chatwoot может присылать дважды (account webhook + bot webhook).
+# Обрабатываем каждое сообщение только один раз по (conversation_id, message_id).
+_SEEN_MESSAGE_KEYS: set[tuple[int, str]] = set()
+_SEEN_LOCK = threading.Lock()
+_SEEN_MAX = 5000
 
 # Chatwoot иногда присылает content с HTML (<p>текст</p>) — убираем теги перед RAG
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
@@ -345,6 +352,16 @@ async def webhook(request: Request, background_tasks: BackgroundTasks) -> dict[s
     if message_type != "incoming":
         logger.debug("chatwoot webhook: skip message_type %s", message_type)
         return {"status": "ok"}
+    message_id = body.get("id")
+    if cid is not None and message_id is not None:
+        key = (cid, str(message_id))
+        with _SEEN_LOCK:
+            if key in _SEEN_MESSAGE_KEYS:
+                logger.info("chatwoot webhook: skip duplicate message_id=%s conversation_id=%s", message_id, cid)
+                return {"status": "ok"}
+            _SEEN_MESSAGE_KEYS.add(key)
+            if len(_SEEN_MESSAGE_KEYS) > _SEEN_MAX:
+                _SEEN_MESSAGE_KEYS.clear()
     content = (body.get("content") or "").strip()
     conv_attrs = conv.get("custom_attributes") or conv.get("additional_attributes") or {}
     print(
@@ -354,7 +371,7 @@ async def webhook(request: Request, background_tasks: BackgroundTasks) -> dict[s
     )
     payload = WebhookPayload(
         event=event,
-        id=body.get("id"),
+        id=message_id,
         content=body.get("content", ""),
         message_type=message_type,
         content_type=body.get("content_type", "text"),
